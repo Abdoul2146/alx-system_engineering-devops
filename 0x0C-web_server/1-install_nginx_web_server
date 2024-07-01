@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Update package list and install Nginx
+sudo apt update
+sudo apt install -y nginx
+
+# Create a simple HTML page
+echo "Hello World!" | sudo tee /var/www/html/index.html
+
+# Start Nginx (without using systemctl)
+sudo service nginx start
+
+# Check if Nginx is running
+if ps aux | grep -v grep | grep nginx > /dev/null
+then
+    echo "Nginx is running."
+else
+    echo "Failed to start Nginx."
+    exit 1
+fi
+
+# Configure Nginx to restart without using systemctl (alternative methods)
+# We will use init.d script to restart the service
+sudo /etc/init.d/nginx restart
+
+# Confirm Nginx is serving the correct content
+response=$(curl -s http://localhost)
+if [[ "$response" == *"Hello World!"* ]]; then
+    echo "Nginx is correctly serving the Hello World! page."
+else
+    echo "Nginx is not serving the correct page."
+    exit 1
+fi
+
