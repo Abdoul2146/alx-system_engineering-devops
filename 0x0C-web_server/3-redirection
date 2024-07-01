@@ -1,38 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#Install nginx web server
+sudo apt-get update && sudo apt-get install nginx
 
-# Create a simple HTML page for redirection target
+# Start nginx service
+sudo service nginx start
+
+# Create index.html with "Hello World!"
+sudo touch /var/www/html/index.html
 echo "Hello World!" | sudo tee /var/www/html/index.html
 
-# Configure Nginx to include a 301 redirection
-sudo bash -c 'cat > /etc/nginx/sites-available/default' <<EOL
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+# Update Nginx configuration to add redirection
+sudo sed -i '/^}$/i \ \n\trewrite ^/redirect_me$ https:\/\/www.youtube.com\/watch?v=QH2-TGUlwu4 permanent;' /etc/nginx/sites-available/default
 
-    root /var/www/html;
-    index index.html;
+# Test Nginx configuration for syntax errors
+sudo nginx -t
 
-    server_name _;
-
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-
-    location /redirect_me {
-        return 301 http://www.example.com;
-    }
-}
-EOL
-
-# Restart Nginx using the init.d script
-sudo /etc/init.d/nginx restart
-
-# Confirm Nginx is running and redirect is set up correctly
-response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/redirect_me)
-if [[ "$response" -eq 301 ]]; then
-    echo "Nginx is correctly redirecting /redirect_me with a 301 status code."
-else
-    echo "Nginx redirection configuration failed."
-    exit 1
-fi
-
+# Restart Nginx to apply changes
+service nginx restart

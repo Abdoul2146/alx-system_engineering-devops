@@ -1,40 +1,27 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#Install nginx web server
+sudo apt-get update && sudo apt-get install nginx
 
-# Create a custom 404 HTML page
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/custom_404.html
+# Start nginx service
+sudo service nginx start
 
-# Configure Nginx to use the custom 404 page
-sudo bash -c 'cat > /etc/nginx/sites-available/default' <<EOL
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+# Create index.html with "Hello World!"
+sudo touch /var/www/html/index.html
+sudo chmod 666 /var/www/html/index.html
+echo "Hello World!" > /var/www/html/index.html
 
-    root /var/www/html;
-    index index.html;
+# Update Nginx configuration to add redirection
+sudo sed -i '/^}$/i \ \n\trewrite ^/redirect_me https:\/\/www.youtube.com\/watch?v=QH2-TGUlwu4 permanent;' /etc/nginx/sites-available/default
 
-    server_name _;
+# Create custom 404 error page
+sudo touch /var/www/html/404.html
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
 
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
+# Update Nginx configuration to use custom 404 error page
+sudo sed -i '/^}$/i \ \n\terror_page 404 /404.html;\n\n\tlocation /404.html {\n\t\tinternal;\n\t}' /etc/nginx/sites--available/default
 
-    error_page 404 /custom_404.html;
-    location = /custom_404.html {
-        internal;
-    }
-}
-EOL
+# Test Nginx configuration for syntax errors
+sudo nginx -t
 
-# Restart Nginx using the init.d script
-sudo /etc/init.d/nginx restart
-
-# Confirm Nginx is serving the custom 404 page correctly
-response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/nonexistentpage)
-content=$(curl -s http://localhost/nonexistentpage)
-if [[ "$response" -eq 404 && "$content" == *"Ceci n'est pas une page"* ]]; then
-    echo "Nginx is correctly serving the custom 404 page."
-else
-    echo "Nginx custom 404 page configuration failed."
-    exit 1
-fi
-
+# Restart Nginx to apply changes
+service nginx restart
